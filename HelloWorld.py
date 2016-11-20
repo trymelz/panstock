@@ -66,7 +66,7 @@ class MovingAverageCrossStrategy(Strategy):
             > signals['long_mavg'][self.short_window:], 1.0, 0.0)   
             
         # Take the difference of the signals in order to generate actual trading orders
-        signals['positions'] = signals['signal'].diff()
+        signals['sigdiff'] = signals['signal'].diff()
         return signals
         
         
@@ -114,20 +114,25 @@ class MarketOnClosePortfolio(Portfolio):
         self.positions = self.generate_positions()
         
     def generate_positions(self):
-        positions = pd.DataFrame(index=signals.index).fillna(0.0)
-        positions[self.symbol] = 100*signals['signal']   # This strategy buys 100 shares
-        return positions
+        pos = pd.DataFrame(index=signals.index)
+        pos['share'] = 100*signals['signal']   # This strategy buys 100 shares
+        pos['sharediff'] = pos['share'].diff()   # This strategy buys 100 shares
+        pos['sharediff'][0]=0
+        return pos
                     
     def backtest_portfolio(self):
-        portfolio = self.positions*self.bars['Adj Close']
-        pos_diff = self.positions.diff()
+        #portfolio = self.positions*self.bars['Adj Close']
+        #pos_diff = self.positions['sharediff']
+        returns = pd.DataFrame(index=self.bars.index).fillna(0.0)
 
-        portfolio['holdings'] = (self.positions*self.bars['Adj Close']).sum(axis=1)
-        portfolio['cash'] = self.initial_capital - (pos_diff*self.bars['Adj Close']).sum(axis=1).cumsum()
+        returns['share'] = self.positions['share']
+        returns['close'] = self.bars['Adj Close']
+        returns['holdings'] = (self.positions['share']*self.bars['Adj Close'])
+        returns['cash'] = self.initial_capital - (self.positions['sharediff']*self.bars['Adj Close']).cumsum()
 
-        portfolio['total'] = portfolio['cash'] + portfolio['holdings']
-        portfolio['returns'] = portfolio['total'].pct_change()
-        return portfolio
+        returns['total'] = returns['cash'] + returns['holdings']
+        returns['ret_pct'] = returns['total'].pct_change()
+        return returns
         
         
 if __name__ == "__main__":
@@ -155,13 +160,13 @@ if __name__ == "__main__":
     signals[['short_mavg', 'long_mavg']].plot(ax=ax1, lw=2.)
 
     # Plot the "buy" trades against AMZN
-    ax1.plot(signals.ix[signals.positions == 1.0].index, 
-             signals.short_mavg[signals.positions == 1.0],
+    ax1.plot(signals.ix[signals.sigdiff == 1.0].index, 
+             signals.short_mavg[signals.sigdiff == 1.0],
              '^', markersize=10, color='m')
 
     # Plot the "sell" trades against AMZN
-    ax1.plot(signals.ix[signals.positions == -1.0].index, 
-             signals.short_mavg[signals.positions == -1.0],
+    ax1.plot(signals.ix[signals.sigdiff == -1.0].index, 
+             signals.short_mavg[signals.sigdiff == -1.0],
              'v', markersize=10, color='k')
 
     # Plot the equity curve in dollars
@@ -169,11 +174,11 @@ if __name__ == "__main__":
     returns['total'].plot(ax=ax2, lw=2.)
 
     # Plot the "buy" and "sell" trades against the equity curve
-    ax2.plot(returns.ix[signals.positions == 1.0].index, 
-             returns.total[signals.positions == 1.0],
+    ax2.plot(returns.ix[signals.sigdiff == 1.0].index, 
+             returns.total[signals.sigdiff == 1.0],
              '^', markersize=10, color='m')
-    ax2.plot(returns.ix[signals.positions == -1.0].index, 
-             returns.total[signals.positions == -1.0],
+    ax2.plot(returns.ix[signals.sigdiff == -1.0].index, 
+             returns.total[signals.sigdiff == -1.0],
              'v', markersize=10, color='k')
 
     # Plot the figure, seeems I don't need to use .show()
