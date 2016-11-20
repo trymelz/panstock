@@ -11,7 +11,8 @@ import numpy as np
 import pandas as pd
 
 from abc import ABCMeta, abstractmethod
-from pandas.io.data import DataReader
+#from pandas.io.data import DataReader
+from pandas_datareader.data import DataReader
 
 
 class Strategy(object):
@@ -55,8 +56,8 @@ class MovingAverageCrossStrategy(Strategy):
 
         # Create the set of short and long simple moving averages over the 
         # respective periods
-        signals['short_mavg'] = bars['Close'].rolling(self.short_window, min_periods=1).mean()
-        signals['long_mavg'] = bars['Close'].rolling(self.long_window, min_periods=1).mean()
+        signals['short_mavg'] = bars['Adj Close'].rolling(self.short_window, min_periods=1).mean()
+        signals['long_mavg'] = bars['Adj Close'].rolling(self.long_window, min_periods=1).mean()
         #signals['short_mavg'] = pd.rolling_mean(bars['Close'], self.short_window, min_periods=1)
         #signals['long_mavg'] = pd.rolling_mean(bars['Close'], self.long_window, min_periods=1)
 
@@ -126,7 +127,7 @@ class MarketOnClosePortfolio(Portfolio):
         returns = pd.DataFrame(index=self.bars.index).fillna(0.0)
 
         returns['share'] = self.positions['share']
-        returns['close'] = self.bars['Adj Close']
+        returns['Aclose'] = self.bars['Adj Close']
         returns['holdings'] = (self.positions['share']*self.bars['Adj Close'])
         returns['cash'] = self.initial_capital - (self.positions['sharediff']*self.bars['Adj Close']).cumsum()
 
@@ -138,11 +139,11 @@ class MarketOnClosePortfolio(Portfolio):
 if __name__ == "__main__":
     # Obtain daily bars of AMZN from Yahoo Finance for the period
     # 1st Jan 2009 to 1st Jan 2014
-    symbol = 'AMZN'
-    bars = DataReader(symbol, "yahoo", datetime.datetime(2009,1,1), datetime.datetime(2014,1,1))
+    symbol = 'GE'
+    bars = DataReader(symbol, "yahoo", datetime.datetime(2009,1,1), datetime.date.today())
 
     # Create a Moving Average Cross Strategy instance 
-    # with short and long moving average windows
+    # with short and long moving average windows,40,100
     mac = MovingAverageCrossStrategy(symbol, bars, short_window=40, long_window=100)
     signals = mac.generate_signals()
 
@@ -156,7 +157,7 @@ if __name__ == "__main__":
     ax1 = fig.add_subplot(211,  ylabel='Price in $')
     
     # Plot the AMZN closing price overlaid with the moving averages
-    bars['Close'].plot(ax=ax1, color='r', lw=2.)
+    bars['Adj Close'].plot(ax=ax1, color='r', lw=2.)
     signals[['short_mavg', 'long_mavg']].plot(ax=ax1, lw=2.)
 
     # Plot the "buy" trades against AMZN
@@ -182,4 +183,5 @@ if __name__ == "__main__":
              'v', markersize=10, color='k')
 
     # Plot the figure, seeems I don't need to use .show()
-    #fig.show()
+    fig.show()
+    print(returns['total'][-1])
