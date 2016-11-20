@@ -56,10 +56,8 @@ class MovingAverageCrossStrategy(Strategy):
 
         # Create the set of short and long simple moving averages over the 
         # respective periods
-        signals['short_mavg'] = bars['Adj Close'].rolling(self.short_window, min_periods=1).mean()
-        signals['long_mavg'] = bars['Adj Close'].rolling(self.long_window, min_periods=1).mean()
-        #signals['short_mavg'] = pd.rolling_mean(bars['Close'], self.short_window, min_periods=1)
-        #signals['long_mavg'] = pd.rolling_mean(bars['Close'], self.long_window, min_periods=1)
+        signals['short_mavg'] = bars['Close'].rolling(self.short_window, min_periods=1).mean()
+        signals['long_mavg'] = bars['Close'].rolling(self.long_window, min_periods=1).mean()
 
         # Create a 'signal' (invested or not invested) when the short moving average crosses the long
         # moving average, but only for the period greater than the shortest moving average window
@@ -157,7 +155,7 @@ if __name__ == "__main__":
     ax1 = fig.add_subplot(211,  ylabel='Price in $')
     
     # Plot the AMZN closing price overlaid with the moving averages
-    bars['Adj Close'].plot(ax=ax1, color='r', lw=2.)
+    bars['Close'].plot(ax=ax1, color='r', lw=2.,figsize=(12,8))
     signals[['short_mavg', 'long_mavg']].plot(ax=ax1, lw=2.)
 
     # Plot the "buy" trades against AMZN
@@ -183,5 +181,5 @@ if __name__ == "__main__":
              'v', markersize=10, color='k')
 
     # Plot the figure, seeems I don't need to use .show()
-    fig.show()
-    print(returns['total'][-1])
+    #fig.show()
+    print("final $ = ",returns['total'][-1])
